@@ -14,7 +14,7 @@ class DashboardController {
       const statusCounts = await query(
         `SELECT status, COUNT(*)::int as count
          FROM tasks
-         WHERE assignee_user_id = $1
+         WHERE assigned_to = $1
          GROUP BY status`,
         [userId],
         { op: 'dashboard.statusCounts' }
@@ -23,7 +23,7 @@ class DashboardController {
       const recentTasks = await query(
         `SELECT id, project_id, title, status, priority, due_date, updated_at
          FROM tasks
-         WHERE assignee_user_id = $1
+         WHERE assigned_to = $1
          ORDER BY updated_at DESC
          LIMIT 10`,
         [userId],

@@ -5,8 +5,8 @@ async function assertTaskProjectAccess({ taskId, userId }) {
     `SELECT 1
      FROM tasks t
      JOIN projects p ON p.id = t.project_id
-     LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = $2
-     WHERE t.id = $1 AND (p.owner_user_id = $2 OR pm.user_id = $2)`,
+     LEFT JOIN project_memberships pm ON pm.project_id = p.id AND pm.user_id = $2
+     WHERE t.id = $1 AND (p.created_by = $2 OR pm.user_id = $2)`,
     [taskId, userId],
     { op: 'comments.assertTaskProjectAccess' }
   );

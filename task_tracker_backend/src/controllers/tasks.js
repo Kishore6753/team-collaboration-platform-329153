@@ -4,8 +4,8 @@ async function assertProjectAccess({ projectId, userId }) {
   const result = await query(
     `SELECT 1
      FROM projects p
-     LEFT JOIN project_members pm ON pm.project_id = p.id AND pm.user_id = $2
-     WHERE p.id = $1 AND (p.owner_user_id = $2 OR pm.user_id = $2)`,
+     LEFT JOIN project_memberships pm ON pm.project_id = p.id AND pm.user_id = $2
+     WHERE p.id = $1 AND (p.created_by = $2 OR pm.user_id = $2)`,
     [projectId, userId],
     { op: 'tasks.assertProjectAccess' }
   );
@@ -32,8 +32,17 @@ class TasksController {
       }
 
       const result = await query(
-        `SELECT t.id, t.project_id, t.title, t.description, t.status, t.priority,
-                t.assignee_user_id, t.due_date, t.created_by_user_id, t.created_at, t.updated_at
+        `SELECT t.id,
+                t.project_id,
+                t.title,
+                t.description,
+                t.status,
+                t.priority,
+                t.assigned_to AS assignee_user_id,
+                t.due_date,
+                t.created_by AS created_by_user_id,
+                t.created_at,
+                t.updated_at
          FROM tasks t
          WHERE t.project_id = $1
          ORDER BY t.created_at DESC`,
@@ -64,14 +73,24 @@ class TasksController {
 
       const result = await query(
         `INSERT INTO tasks (
-            project_id, title, description, status, priority, assignee_user_id, due_date, created_by_user_id
+            project_id, title, description, status, priority, assigned_to, due_date, created_by
          )
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         RETURNING id, project_id, title, description, status, priority, assignee_user_id, due_date, created_by_user_id, created_at, updated_at`,
+         RETURNING id,
+                   project_id,
+                   title,
+                   description,
+                   status,
+                   priority,
+                   assigned_to AS assignee_user_id,
+                   due_date,
+                   created_by AS created_by_user_id,
+                   created_at,
+                   updated_at`,
         [
           projectId,
           title,
-          description ?? '',
+          description ?? null,
           status ?? 'todo',
           priority ?? 'medium',
           assigneeUserId ?? null,
@@ -119,10 +138,20 @@ class TasksController {
              description = COALESCE($3, description),
              status = COALESCE($4, status),
              priority = COALESCE($5, priority),
-             assignee_user_id = COALESCE($6, assignee_user_id),
+             assigned_to = COALESCE($6, assigned_to),
              due_date = COALESCE($7, due_date)
          WHERE id = $1
-         RETURNING id, project_id, title, description, status, priority, assignee_user_id, due_date, created_by_user_id, created_at, updated_at`,
+         RETURNING id,
+                   project_id,
+                   title,
+                   description,
+                   status,
+                   priority,
+                   assigned_to AS assignee_user_id,
+                   due_date,
+                   created_by AS created_by_user_id,
+                   created_at,
+                   updated_at`,
         [
           taskId,
           title ?? null,
